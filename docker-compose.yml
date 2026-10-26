@@ -1,0 +1,67 @@
+# Local development stack. Everything is bound to 127.0.0.1; nothing is published to the network.
+# Required secrets come from .env (copy .env.example). Nothing secret is written in this file.
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: aiinvestor
+      MYSQL_USER: aiinvestor
+      MYSQL_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD in .env}
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_ai_ci", "--default-time-zone=+00:00"]
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]   # cache/locks/transient state only; losing it is harmless
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      mysql: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/aiinvestor?useUnicode=true&characterEncoding=utf8&connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true
+      DB_USER: aiinvestor
+      DB_PASSWORD: ${DB_PASSWORD}
+      REDIS_HOST: redis
+      APP_ADMIN_USER: ${APP_ADMIN_USER:-admin}
+      APP_ADMIN_PASSWORD: ${APP_ADMIN_PASSWORD:?set APP_ADMIN_PASSWORD in .env}
+      DATA_SOURCE: ${DATA_SOURCE:-MOCK}
+      MOCK_REPLAY: ${MOCK_REPLAY:-true}
+      AI_PROVIDER: ${AI_PROVIDER:-MOCK_HEURISTIC}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-opus-5-5}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GROWW_ENABLED: ${GROWW_ENABLED:-false}
+      GROWW_ACCESS_TOKEN: ${GROWW_ACCESS_TOKEN:-}
+      GROWW_API_KEY: ${GROWW_API_KEY:-}
+      GROWW_API_SECRET: ${GROWW_API_SECRET:-}
+      GROWW_TOTP_SECRET: ${GROWW_TOTP_SECRET:-}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      JAVA_TOOL_OPTIONS: -Duser.timezone=UTC
+    ports:
+      - "127.0.0.1:8080:8080"
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on: [backend]
+    ports:
+      - "127.0.0.1:5173:80"
+
+volumes:
+  mysql-data:

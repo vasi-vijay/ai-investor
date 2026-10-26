@@ -1,0 +1,17 @@
+# build
+target/
+node_modules/
+dist/
+*.log
+# secrets / local config — never commit
+.env
+.env.*
+!.env.example
+*.pem
+application-local.yml
+application-local.properties
+secrets/
+# IDE
+.idea/
+*.iml
+.vscode/

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <!-- Every log line passes through the credential redactor (bearer tokens, api keys, secrets, JWTs, sk-ant keys). -->
+  <conversionRule conversionWord="redactedMsg" class="com.aiinvestor.util.RedactingMessageConverter"/>
+  <conversionRule conversionWord="redactedEx" class="com.aiinvestor.util.RedactingThrowableConverter"/>
+  <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [%thread] %logger{36} : %redactedMsg%n%redactedEx</pattern>
+    </encoder>
+  </appender>
+  <root level="INFO"><appender-ref ref="CONSOLE"/></root>
+  <logger name="com.aiinvestor" level="INFO"/>
+</configuration>

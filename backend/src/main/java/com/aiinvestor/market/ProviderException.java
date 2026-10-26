@@ -1,0 +1,7 @@
+package com.aiinvestor.market;
+
+/** Data/metadata provider failure (network, entitlement, parsing). Never contains credentials. */
+public class ProviderException extends RuntimeException {
+    public ProviderException(String message) { super(message); }
+    public ProviderException(String message, Throwable cause) { super(message, cause); }
+}
