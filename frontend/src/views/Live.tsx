@@ -17,7 +17,7 @@ export default function Live({ admin, bump }: { admin: boolean; bump: number }) 
   return (
     <div className="stack">
       <div className={'banner ' + (enabled ? 'warn' : 'info')}>
-        {enabled ? <><b>LIVE ACCOUNT scope.</b> Every order requires manual approval. Real money.</> : <><b>Live trading is DISABLED.</b> The pilot runs in paper mode. Live order placement requires every condition below to pass.</>}
+        {enabled ? <><b>LIVE ACCOUNT scope.</b> Every order requires manual approval. Real money.</> : <><b>Live trading is DISABLED.</b> Paper trading remains available as a simulation. Live order placement requires every condition below to pass.</>}
       </div>
       <ErrorNote error={err || st.error} />
       {msg && <div className="note info small">{msg}</div>}

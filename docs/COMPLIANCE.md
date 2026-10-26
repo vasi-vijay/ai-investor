@@ -1,4 +1,4 @@
-# Compliance register (India) — status: **UNVERIFIED**
+# Compliance register (India) — status: **UNVERIFIED (partially sourced)**
 
 **Result of the required review:** the review could **not** be performed in this build. The sandbox's egress policy blocked
 `www.sebi.gov.in`, `www.nseindia.com` and `groww.in` (HTTP 403 on CONNECT; not circumvented). No regulatory statement in this repository
@@ -29,3 +29,14 @@ Do not read the "leads" column as fact: it records what the implementer *recalls
 4. If any item cannot be confirmed, leave live trading off. Paper trading is unaffected.
 
 This document is engineering guidance, not legal advice.
+
+## Verification log — 2026-10-27 (second pass, with web access)
+
+| Source read | What was actually confirmed | What was NOT readable |
+|---|---|---|
+| `groww.in/trade-api/docs/curl` | Token auth (`POST /v1/token/api/access`; TOTP and approval flows need **daily approval**); access token **expires daily 06:00**; token endpoint limit 150/24 h; rate limits: auth 5/s·30/min, orders 10/s·250/min, live data 10/s·300/min, non-trading 20/s·500/min; an **active Trading API subscription is required**; scope is CASH and FNO only | Quote/margin/position response field names; any regulatory statement. No streaming feed or static-IP requirement is *mentioned* on that page (absence of mention is not proof of absence) |
+| `groww.in/trade-api/docs` (landing) | Links to the Python SDK and cURL docs only | No static-IP, algo-tagging, SEBI/NSE content |
+| SEBI circular page (`sebi.gov.in`, retail algo trading) | Header only: circular **SEBI/HO/MIRSD/MIRSD-PoD/P/CIR/2025/0000013**, dated **04 Feb 2025**, "Safer participation of retail investors in Algorithmic trading" | The body (scope, thresholds, registration/tagging, static IP, authentication, effective dates) was **not retrievable** — the PDF/attachment must be read by a human |
+| nseindia.com | not fetched in this pass | everything |
+
+Consequences: item 5 (rate limits) is now sourced from Groww for *Groww's* limits (the NSE/SEBI classification thresholds remain unverified); item 4 (token lifetime) is confirmed for Groww. All other rows stay ☐ unverified, so **live order placement stays disabled** (`5_COMPLIANCE_ATTESTED` cannot pass).

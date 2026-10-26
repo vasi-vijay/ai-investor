@@ -43,24 +43,24 @@ public class AppConfig {
         return new SettableClock(session.openInstant(start));
     }
 
-    // ------------------------------------------------------------------ MOCK data source (default)
+    // ------------------------------------------------------------------ MOCK data source (explicit opt-in: DATA_SOURCE=MOCK)
 
-    @Bean @ConditionalOnProperty(name = "app.data.source", havingValue = "MOCK", matchIfMissing = true)
+    @Bean @ConditionalOnProperty(name = "app.data.source", havingValue = "MOCK")
     SyntheticMarket syntheticMarket(AppProperties p, MarketSession s) {
         return new SyntheticMarket(s, p.mock().basePrices(), p.mock().lotSizes());
     }
 
-    @Bean @ConditionalOnProperty(name = "app.data.source", havingValue = "MOCK", matchIfMissing = true)
+    @Bean @ConditionalOnProperty(name = "app.data.source", havingValue = "MOCK")
     MockMarketDataProvider mockMarketData(SyntheticMarket m, MarketSession s, TradingClock c) {
         return new MockMarketDataProvider(m, s, c);
     }
 
-    @Bean @ConditionalOnProperty(name = "app.data.source", havingValue = "MOCK", matchIfMissing = true)
+    @Bean @ConditionalOnProperty(name = "app.data.source", havingValue = "MOCK")
     InstrumentMetadataProvider mockMetadata(SyntheticMarket m, MarketSession s, AppProperties p) {
         return new MockInstrumentMetadataProvider(m, s, p);
     }
 
-    @Bean @ConditionalOnProperty(name = "app.data.source", havingValue = "MOCK", matchIfMissing = true)
+    @Bean @ConditionalOnProperty(name = "app.data.source", havingValue = "MOCK")
     BrokerAccountProvider mockAccount(AppProperties p) { return new MockBrokerAccountProvider(p.paper().initialCapital()); }
 
     /**
@@ -74,6 +74,7 @@ public class AppConfig {
 
     @Bean AiAnalyst aiAnalyst(AppProperties p, ObjectMapper mapper) {
         if ("CLAUDE".equalsIgnoreCase(p.ai().provider())) return new ClaudeAnalyst(new AnthropicSdkGateway(p.ai()));
-        return new HeuristicMockAnalyst(mapper);
+        if ("MOCK_HEURISTIC".equalsIgnoreCase(p.ai().provider())) return new HeuristicMockAnalyst(mapper);
+        throw new IllegalStateException("unknown app.ai.provider '" + p.ai().provider() + "' (expected CLAUDE or MOCK_HEURISTIC)");
     }
 }

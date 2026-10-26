@@ -52,3 +52,10 @@ Error mapping in the SDK (401 auth, 403 authorisation, 404, 429 rate limit, 504 
 `DATA_SOURCE=MOCK` (default) runs everything on deterministic synthetic data (`SyntheticMarket`) with a mock instrument master, quotes, account
 and order provider. To go real: set `DATA_SOURCE=GROWW` and supply `GROWW_ACCESS_TOKEN` (or `GROWW_API_KEY` + `GROWW_TOTP_SECRET`/`GROWW_API_SECRET`)
 via environment/secret file — never through the UI or a chat.
+
+## Update 2026-10-27 — verified against `groww.in/trade-api/docs/curl`
+
+* Confirmed: token endpoint and key types, daily token expiry (06:00), daily approval for API-key flows, per-endpoint rate limits (auth 5/s, orders 10/s, live data 10/s, non-trading 20/s), required Trading API subscription, CASH/FNO scope, order-detail field names (`groww_order_id`, `order_status`, `filled_quantity`, `average_fill_price`, …).
+* The adapter's default `max-requests-per-second=5` is below every published limit, so it is safe; per-minute caps (e.g. 300/min live data) are **not** separately enforced — keep the poll interval modest.
+* Still unverified: quote/margin/position/candle response shapes, instrument CSV columns, streaming availability. The app treats market data as **REST polling** and says so in the UI.
+* "No default mock": `DATA_SOURCE` now defaults to `GROWW`. Without credentials the engine is idle (reason shown), `/api/market/*` answers `unavailable`, and nothing is simulated unless `DATA_SOURCE=MOCK` is set explicitly.

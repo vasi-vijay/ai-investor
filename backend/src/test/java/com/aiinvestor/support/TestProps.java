@@ -16,6 +16,7 @@ public final class TestProps {
     public static AppProperties with(Map<String, String> overrides) {
         Map<String, Object> m = new HashMap<>(overrides);
         m.putIfAbsent("app.data.source", "MOCK");
+        m.putIfAbsent("app.ai.provider", "MOCK_HEURISTIC");
         return new Binder(new MapConfigurationPropertySource(m)).bind("app", AppProperties.class).get();
     }
 }

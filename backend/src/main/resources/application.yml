@@ -1,4 +1,4 @@
-# Defaults are safe: MOCK data, PAPER mode, live disabled, no credentials required.
+# Defaults: real integrations (Groww data, Claude), PAPER mode, live disabled. Missing credentials => "not configured" states, never a mock fallback.
 # Secrets are NEVER put here — supply them via environment variables (see .env.example).
 spring:
   application:
@@ -50,7 +50,7 @@ logging:
 
 app:
   data:
-    source: ${DATA_SOURCE:MOCK}          # MOCK | GROWW
+    source: ${DATA_SOURCE:GROWW}         # GROWW (real) | MOCK (explicit synthetic simulation only)
     timeframe-minutes: 5
   mock:
     replay-enabled: ${MOCK_REPLAY:true}  # step through simulated days so the pipeline runs outside market hours
@@ -59,7 +59,7 @@ app:
     initial-capital: ${PAPER_CAPITAL:1000000}
   ai:
     enabled: true
-    provider: ${AI_PROVIDER:MOCK_HEURISTIC}   # CLAUDE requires ANTHROPIC_API_KEY (environment only)
+    provider: ${AI_PROVIDER:CLAUDE}   # CLAUDE requires ANTHROPIC_API_KEY (environment only); MOCK_HEURISTIC only when set explicitly
     model: ${ANTHROPIC_MODEL:claude-opus-5-5}
   groww:
     enabled: ${GROWW_ENABLED:false}

@@ -63,6 +63,7 @@ public class PaperTradingService {
     private final com.aiinvestor.persistence.StrategyConfigRepository strategyConfigs;
     private final com.aiinvestor.persistence.CandleRepository candleArchive;
     private final com.fasterxml.jackson.databind.ObjectMapper mapper;
+    private final org.springframework.beans.factory.ObjectProvider<com.aiinvestor.api.IntegrationService> integrations;
 
     private volatile Run run;
     private volatile RunContext ctx;
@@ -74,6 +75,7 @@ public class PaperTradingService {
     private volatile long lastActionMs;
     private volatile Instant lastTickAt;
     private volatile String lastError;
+    private volatile String lastBlockedReason;
     private volatile boolean stopping;
     private final Map<String, Double> marks = new ConcurrentHashMap<>();
 
@@ -82,7 +84,9 @@ public class PaperTradingService {
                                ReconciliationService reconciliation, AuditRepository audit, TradeRepository trades, InstrumentRepository instrumentRepo,
                                org.springframework.beans.factory.ObjectProvider<com.aiinvestor.api.EventBroadcaster> events,
                                com.aiinvestor.persistence.StrategyConfigRepository strategyConfigs, com.aiinvestor.persistence.CandleRepository candleArchive,
-                               com.fasterxml.jackson.databind.ObjectMapper mapper) {
+                               com.fasterxml.jackson.databind.ObjectMapper mapper,
+                               org.springframework.beans.factory.ObjectProvider<com.aiinvestor.api.IntegrationService> integrations) {
+        this.integrations = integrations;
         this.events = events;
         this.strategyConfigs = strategyConfigs;
         this.candleArchive = candleArchive;
@@ -109,7 +113,9 @@ public class PaperTradingService {
         this.ctx = buildContext(run);
         this.view = new LiveMarketView(history, quotes, session, clock, props.data().warmupDays(), props.data().source());
         recordRunConfig();
-        try { this.uni = universe.analysisUniverse(); } catch (RuntimeException e) { lastError = "universe: " + e.getMessage(); log.warn("could not resolve universe: {}", e.getMessage()); }
+        com.aiinvestor.api.IntegrationService is0 = integrations.getIfAvailable();
+        if (is0 != null && is0.engineBlockReason() != null) lastBlockedReason = is0.engineBlockReason();   // resolve the universe only once real data is usable
+        else try { this.uni = universe.analysisUniverse(); } catch (RuntimeException e) { lastError = "universe: " + e.getMessage(); log.warn("could not resolve universe: {}", e.getMessage()); }
         int openPos = trades.openPositions(run.id()).size(), openOrd = trades.openOrders(run.id()).size();
         audit.log("system", "PAPER_RUN_STARTED", "run", run.id(), "mode=" + run.aiMode() + " data=" + run.dataSource() + " recovered open positions=" + openPos + " pending orders=" + openOrd);
         log.info("Paper run {} ready (aiMode={}, data={}, recovered {} open positions, {} pending orders)", run.id(), run.aiMode(), run.dataSource(), openPos, openOrd);
@@ -150,6 +156,7 @@ public class PaperTradingService {
     public Optional<Run> currentRun() { return Optional.ofNullable(run); }
     public Instant lastTickAt() { return lastTickAt; }
     public String lastError() { return lastError; }
+    public String blockedReason() { return lastBlockedReason; }
     public Map<String, Double> marks() { return Map.copyOf(marks); }
     public boolean replayMode() { return clock instanceof SettableClock; }
     public Instant now() { return clock.now(); }
@@ -195,6 +202,13 @@ public class PaperTradingService {
 
     /** One cycle at the clock's current time. Visible for tests (they drive time explicitly). */
     public synchronized void runCycle() {
+        com.aiinvestor.api.IntegrationService is = integrations.getIfAvailable();
+        String blocked = is == null ? null : is.engineBlockReason();
+        if (blocked != null) {   // no real data / paused: no signals, no fills, and never a mock fallback
+            lastBlockedReason = blocked;
+            return;
+        }
+        lastBlockedReason = null;
         view.refresh();
         Instant now = clock.now();
         LocalDate day = session.dateOf(now);

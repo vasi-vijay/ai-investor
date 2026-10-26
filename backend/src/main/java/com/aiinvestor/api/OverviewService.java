@@ -35,10 +35,12 @@ public class OverviewService {
     private final KillSwitch kill;
     private final SettingsRepository settings;
     private final TransientStore store;
+    private final IntegrationService integrations;
 
     public OverviewService(PaperTradingService paper, TradeRepository trades, DailyStateRepository daily, MarketSession session,
                            AppProperties props, AiAnalysisService ai, ObjectProvider<GrowwAuthManager> groww, KillSwitch kill,
-                           SettingsRepository settings, TransientStore store) {
+                           SettingsRepository settings, TransientStore store, IntegrationService integrations) {
+        this.integrations = integrations;
         this.paper = paper; this.trades = trades; this.daily = daily; this.session = session; this.props = props;
         this.ai = ai; this.groww = groww; this.kill = kill; this.settings = settings; this.store = store;
     }
@@ -48,9 +50,12 @@ public class OverviewService {
         Run run = paper.currentRun().orElse(null);
         Instant now = paper.now();
         m.put("mode", "PAPER");
+        m.put("operating_state", integrations.state().name());
+        m.put("data", integrations.data());
+        m.put("engine_blocked_reason", paper.blockedReason());
         m.put("mode_note", "All executions are simulated. Live order placement is "
                 + ("YES".equals(settings.get("live_authorized", "NO")) && props.live().enabled() ? "configured but gated by manual approval" : "DISABLED"));
-        m.put("simulated", true);
+        m.put("simulated", true);   // paper executions are always simulated; "data.simulated" says whether prices are too
         m.put("data_source", props.data().source());
         m.put("clock", Map.of("mode", paper.replayMode() ? "REPLAY_SIMULATED_TIME" : "REAL", "now_utc", now.toString(),
                 "now_local", now.atZone(session.zone()).toLocalDateTime().toString() + " " + session.zone()));
@@ -64,17 +69,7 @@ public class OverviewService {
         else { gw.put("status", g.state().name()); gw.put("detail", g.message()); }
         m.put("groww", gw);
 
-        AiAnalysisService.Health h = ai.health();
-        Map<String, Object> cl = new LinkedHashMap<>();
-        cl.put("analyst", h.analyst());
-        cl.put("model", h.model());
-        cl.put("configured", h.configured());
-        cl.put("status", !ai.enabled() ? "DISABLED" : "MOCK_HEURISTIC".equals(h.analyst()) ? "MOCK_STAND_IN" : !h.configured() ? "NOT_CONFIGURED"
-                : h.lastFailure() != null && (h.lastSuccess() == null || h.lastFailure().isAfter(h.lastSuccess())) ? "DEGRADED" : h.lastSuccess() == null ? "CONFIGURED_NO_CALLS_YET" : "OK");
-        cl.put("last_success", h.lastSuccess());
-        cl.put("last_failure", h.lastFailure());
-        cl.put("last_failure_message", h.lastFailureMessage());
-        m.put("claude", cl);
+        m.put("claude", integrations.claude());
 
         Map<String, Object> fresh = new LinkedHashMap<>();
         fresh.put("last_cycle_wall_clock", paper.lastTickAt());

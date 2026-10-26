@@ -39,8 +39,8 @@ public record AppProperties(
             List<LocalDate> holidays) {}
 
     public record Data(
-            /** MOCK (synthetic, no credentials) or GROWW (real market data; needs credentials + data subscription). */
-            @DefaultValue("MOCK") String source,
+            /** GROWW (real market data; needs credentials + data subscription) or MOCK (synthetic; must be selected explicitly, never a fallback). */
+            @DefaultValue("GROWW") String source,
             @DefaultValue("5") int timeframeMinutes,
             @DefaultValue("30") int maxQuoteAgeSeconds,
             @DefaultValue("3") int warmupDays,
@@ -132,7 +132,7 @@ public record AppProperties(
     public record Ai(
             @DefaultValue("true") boolean enabled,
             /** CLAUDE (Anthropic API) or MOCK_HEURISTIC (deterministic stand-in; NOT evidence about Claude). */
-            @DefaultValue("MOCK_HEURISTIC") String provider,
+            @DefaultValue("CLAUDE") String provider,
             @DefaultValue("claude-opus-5-5") String model,
             @DefaultValue("60") int timeoutSeconds,
             @DefaultValue("4000") int maxOutputTokens,

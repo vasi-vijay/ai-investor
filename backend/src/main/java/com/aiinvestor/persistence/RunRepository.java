@@ -34,9 +34,10 @@ public class RunRepository {
     }
 
     /** The long-lived paper run (one per name); created on first start, reused after restart. */
+    /** A run is reused only with the SAME data source, so simulated-data and real-data results never share a run. */
     public Run getOrCreatePaperRun(String name, AiMode aiMode, String dataSource, BigDecimal capital) {
-        Optional<Run> r = jdbc.sql("SELECT * FROM trading_runs WHERE run_mode='PAPER' AND name=? AND status='RUNNING'")
-                .param(name).query((rs, n) -> map(rs)).optional();
+        Optional<Run> r = jdbc.sql("SELECT * FROM trading_runs WHERE run_mode='PAPER' AND name=? AND data_source=? AND status='RUNNING'")
+                .params(name, dataSource).query((rs, n) -> map(rs)).optional();
         return r.orElseGet(() -> create(RunMode.PAPER, name, aiMode, dataSource, capital, null, null, null, null));
     }
 
