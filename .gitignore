@@ -15,3 +15,7 @@ secrets/
 .idea/
 *.iml
 .vscode/
+
+# local Redis snapshots
+dump.rdb
+*.rdb
